@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 
 # Set API key
-api_key = "sk-your_api_key"
+api_key = "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"
 
 # Function to generate random participant details
 def generate_participant_details():
@@ -35,7 +35,7 @@ messages_options = {
         {"role": "user", "content": conditionA},
         # Prompting to generate thoughts before the final response (thought-process breakdown)
         {"role": "user", "content": "Think carefully about what kind of person you are."},
-        {"role": "user", "content": "Now, based on your thoughts, what is your final answer?"}
+        {"role": "user", "content": "Now, based on your thoughts, what is your final answer? Output your rating only please."}
     ],
     "condition B": lambda: [
         generate_participant_details(),
@@ -44,7 +44,7 @@ messages_options = {
         {"role": "user", "content": conditionB},
         # Prompting to generate thoughts before the final response (thought-process breakdown)
         {"role": "user", "content": "Think carefully about what kind of person you are."},
-        {"role": "user", "content": "Now, based on your thoughts, what is your final answer?"}
+        {"role": "user", "content": "Now, based on your thoughts, what is your final answer? Output your rating only please."}
     ]
 }
 

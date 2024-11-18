@@ -16,4 +16,4 @@ etc.
 
 After about 5 minutes of conversation, the pharmacist tells you that you might have a fungal infection in your genital area and retrieves an antifungal cream from the shelf. After paying, you leave the pharmacy.
 
-To what extent do you agree: "This pharmacist communicates in a polite way." (1 = Not at all, 7 = very much, please report your rating with a number only)
+To what extent do you feel embarrassed when interacting with this pharmacist? (1 = Not at all, 7 = very much, please report your rating with a number only)
