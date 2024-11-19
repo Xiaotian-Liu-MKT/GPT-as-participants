@@ -11,11 +11,12 @@ api_key = "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"
 # Function to generate random participant details
 def generate_participant_details():
     age = random.randint(18, 65)
-    sex = random.choice(["male", "female", "non-binary"])
-    culture_background = random.choice(["urban", "rural", "suburban", "immigrant"])
-    name = random.choice(["Alex", "Jordan", "Taylor", "Morgan", "Riley", "Casey", "Cameron", "Avery"])
-    mood = random.choice(["happy", "frustrated", "optimistic", "nervous", "thoughtful"])
-    return age, sex, culture_background, name, mood
+    sex = random.choice(["male", "female"])
+    culture_background = random.choice(["Caucasian", "African", "Asian", "Latino", "Middle Eastern", "Indigenous", "Mixed"])
+    socialSensitivity = random.choice([["very low", "low", "moderate", "high", "very high"]])
+    mood = random.choice(["happy", "sad", "angry", "anxious", "excited", "calm", "bored", "confused", "frustrated",
+                          "hopeful", "relaxed", "nervous", "grateful", "jealous", "content"])
+    return age, sex, culture_background, socialSensitivity, mood
 
 # Function to load conditions from external text files
 def load_condition(file_path):
@@ -31,7 +32,9 @@ messages_options = {
     "condition A": lambda: [
         generate_participant_details(),
         # Few-shot examples to guide the response pattern
-        {"role": "system", "content": "You are a human living in the US. You are {} years old, {} gender, with {} cultural background, named {}. Today you are feeling {}.".format(*generate_participant_details())},
+        {"role": "system", "content": "You are a human living in the US. You are {} years old, {} gender,"
+                                      " with {} cultural background. You social sensitivity is {}."
+                                      "Today you are feeling {}.".format(*generate_participant_details())},
         {"role": "user", "content": conditionA},
         # Prompting to generate thoughts before the final response (thought-process breakdown)
         {"role": "user", "content": "Think carefully about what kind of person you are."},
@@ -40,7 +43,9 @@ messages_options = {
     "condition B": lambda: [
         generate_participant_details(),
         # Few-shot examples to guide the response pattern
-        {"role": "system", "content": "You are a human living in the US. You are {} years old, {} gender, with {} cultural background, named {}. Today you are feeling {}.".format(*generate_participant_details())},
+        {"role": "system", "content": "You are a human living in the US. You are {} years old, {} gender,"
+                                      " with {} cultural background. You social sensitivity is {}. "
+                                      "Today you are feeling {}.".format(*generate_participant_details())},
         {"role": "user", "content": conditionB},
         # Prompting to generate thoughts before the final response (thought-process breakdown)
         {"role": "user", "content": "Think carefully about what kind of person you are."},
