@@ -9,6 +9,8 @@ parameters are configurable.
 from __future__ import annotations
 
 import argparse
+import base64
+import json
 import os
 import random
 import time
@@ -26,65 +28,101 @@ from litellm import completion
 BASE_DIR = Path(__file__).resolve().parent
 
 
-def generate_participant_details() -> tuple[int, str, str, str, str]:
-    """Return random demographic information for a synthetic participant."""
-    age = random.randint(18, 65)
-    sex = random.choice(["male", "female"])
+def load_profile_config(path: Path | None) -> tuple[dict, list[str] | None]:
+    """Load optional profile configuration from JSON."""
+    if path is None:
+        return {}, None
+    with path.open("r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    demographics = data.get("demographics", {})
+    traits = data.get("characteristics")
+    return demographics, traits
+
+
+def generate_participant_details(
+    demographics_options: dict | None = None,
+    traits: list[str] | None = None,
+) -> tuple[dict, dict]:
+    """Return random demographic and trait information."""
+
+    demographics_options = demographics_options or {}
+    age_range = demographics_options.get("age_range", (18, 65))
+    age = random.randint(*age_range)
+    sex = random.choice(demographics_options.get("sex", ["male", "female"]))
     culture_background = random.choice(
-        [
-            "Caucasian",
-            "African",
-            "Asian",
-            "Latino",
-            "Middle Eastern",
-            "Indigenous",
-            "Mixed",
-        ]
+        demographics_options.get(
+            "culture_background",
+            [
+                "Caucasian",
+                "African",
+                "Asian",
+                "Latino",
+                "Middle Eastern",
+                "Indigenous",
+                "Mixed",
+            ],
+        )
     )
-    social_sensitivity = random.choice(
-        ["very low", "low", "moderate", "high", "very high"]
-    )
-    mood = random.choice(
-        [
-            "happy",
-            "sad",
-            "angry",
-            "anxious",
-            "excited",
-            "calm",
-            "bored",
-            "confused",
-            "frustrated",
-            "hopeful",
-            "relaxed",
-            "nervous",
-            "grateful",
-            "jealous",
-            "content",
-        ]
-    )
-    return age, sex, culture_background, social_sensitivity, mood
+
+    demographics = {
+        "Age": age,
+        "Sex": sex,
+        "Culture Background": culture_background,
+    }
+
+    traits = traits or [
+        "extraversion",
+        "agreeableness",
+        "conscientiousness",
+        "neuroticism",
+        "openness",
+    ]
+    characteristics = {trait: random.randint(1, 7) for trait in traits}
+    return demographics, characteristics
 
 
-def load_condition(file_path: Path) -> str:
-    """Return the contents of a text file used as an experimental condition."""
-    with file_path.open("r", encoding="utf-8") as fh:
-        return fh.read().strip()
+def load_condition(file_path: Path) -> list[dict]:
+    """Return message parts for a condition, supporting text and images."""
+
+    suffix = file_path.suffix.lower()
+    if suffix == ".txt":
+        text = file_path.read_text(encoding="utf-8").strip()
+        return [{"type": "text", "text": text}]
+    if suffix in {".png", ".jpg", ".jpeg", ".gif"}:
+        with file_path.open("rb") as fh:
+            b64 = base64.b64encode(fh.read()).decode("ascii")
+        mime = "jpeg" if suffix in {".jpg", ".jpeg"} else suffix.lstrip(".")
+        url = f"data:image/{mime};base64,{b64}"
+        return [{"type": "image_url", "image_url": {"url": url}}]
+    raise ValueError(f"Unsupported condition file type: {file_path}")
 
 
-def build_messages(condition_text: str) -> tuple[list[dict], dict]:
+def build_messages(
+    condition_content: list[dict],
+    demographics_options: dict | None = None,
+    traits: list[str] | None = None,
+) -> tuple[list[dict], dict]:
     """Create messages for the language model and participant metadata."""
-    age, sex, culture_background, social_sensitivity, mood = (
-        generate_participant_details()
+
+    demographics, characteristics = generate_participant_details(
+        demographics_options, traits
     )
     system_prompt = (
-        "You are a human living in the US. You are {} years old, {} gender, "
-        "with {} cultural background. You social sensitivity is {}. Today you are "
-        "feeling {}."
-    ).format(age, sex, culture_background, social_sensitivity, mood)
+        "You are a human living in the US. You are {age} years old, {sex} gender, "
+        "with {culture} cultural background.".format(
+            age=demographics["Age"],
+            sex=demographics["Sex"],
+            culture=demographics["Culture Background"],
+        )
+    )
+    for trait, value in characteristics.items():
+        system_prompt += (
+            f" Your {trait} is {value} (1=very low, 7=very high)."
+        )
+
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": condition_text},
+        {"role": "user", "content": condition_content},
         {"role": "user", "content": "Think carefully about what kind of person you are."},
         {
             "role": "user",
@@ -94,13 +132,7 @@ def build_messages(condition_text: str) -> tuple[list[dict], dict]:
             ),
         },
     ]
-    metadata = {
-        "Age": age,
-        "Sex": sex,
-        "Culture Background": culture_background,
-        "Social Sensitivity": social_sensitivity,
-        "Mood": mood,
-    }
+    metadata = {**demographics, **{trait.title(): val for trait, val in characteristics.items()}}
     return messages, metadata
 
 
@@ -113,6 +145,7 @@ def simulate_participants(
     count: int,
     model: str,
     output: Path | None = None,
+    profile_config: Path | None = None,
 ) -> Path:
     """Run the simulation and save results to an Excel file.
 
@@ -125,6 +158,8 @@ def simulate_participants(
     output:
         Optional path to the Excel file.  If omitted, a timestamped file is
         created in the current directory.
+    profile_config:
+        Optional JSON file describing demographic choices and trait names.
     Returns
     -------
     Path
@@ -138,6 +173,8 @@ def simulate_participants(
             "LITELLM_API_KEY not set. Create a .env file or export the variable before running."
         )
 
+    demo_options, trait_names = load_profile_config(profile_config)
+
     condition_a = load_condition(BASE_DIR / "conditionA.txt")
     condition_b = load_condition(BASE_DIR / "conditionB.txt")
 
@@ -145,8 +182,12 @@ def simulate_participants(
     for i in range(count):
         try:
             condition_key = random.choice(["condition A", "condition B"])
-            condition_text = condition_a if condition_key == "condition A" else condition_b
-            messages, metadata = build_messages(condition_text)
+            condition_content = (
+                condition_a if condition_key == "condition A" else condition_b
+            )
+            messages, metadata = build_messages(
+                condition_content, demo_options, trait_names
+            )
 
             response = completion(
                 model=model,
@@ -197,12 +238,19 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="optional path to save the Excel results",
     )
+    parser.add_argument(
+        "--profile-config",
+        type=Path,
+        help="JSON file with demographic options and trait names",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    path = simulate_participants(args.participants, args.model, args.output)
+    path = simulate_participants(
+        args.participants, args.model, args.output, args.profile_config
+    )
     print(f"Results saved to {path}")
 
 
