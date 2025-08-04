@@ -42,6 +42,8 @@
 ```bash
 python pythonProject/gui.py
 ```
+在窗口中填写参与者数量，通过下拉列表选择模型供应商和模型名称，还可设置输出路径和配置文件，最后点击“Start Simulation”即可。
+=======
 在窗口中填写参与者数量、模型名称以及可选的输出路径、配置文件，然后点击“Start Simulation”即可。
 
 ## 运行模拟
@@ -132,6 +134,10 @@ There is also a minimal GUI:
 ```bash
 python pythonProject/gui.py
 ```
+
+The window lets you enter the number of participants and pick a model provider and model name from drop‑down lists, plus optional output and profile configuration paths.
+
+=======
 
 Command‑line options:
 

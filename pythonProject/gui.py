@@ -14,6 +14,14 @@ from tkinter import filedialog, messagebox, ttk
 from simulate import simulate_participants
 
 
+MODEL_CATALOG = {
+    "openai": ["gpt-4o-mini", "gpt-4o", "gpt-4.1"],
+    "anthropic": ["claude-3-haiku-20240307", "claude-3-sonnet-20240229"],
+    "google": ["gemini-1.5-flash", "gemini-1.5-pro"],
+}
+
+
+
 class SimulatorGUI(tk.Tk):
     """Main application window."""
 
@@ -24,7 +32,11 @@ class SimulatorGUI(tk.Tk):
 
         # Variables
         self.participants_var = tk.StringVar(value="200")
+
+        self.vendor_var = tk.StringVar(value="openai")
+        self.model_var = tk.StringVar(value=MODEL_CATALOG["openai"][0])
         self.model_var = tk.StringVar(value="gpt-4o-mini")
+
         self.output_var = tk.StringVar()
         default_profile = Path(__file__).parent / "profile_config.json"
         self.profile_var = tk.StringVar(
@@ -46,6 +58,55 @@ class SimulatorGUI(tk.Tk):
             row=0, column=1, **padding
         )
 
+
+        ttk.Label(frm, text="Vendor:").grid(row=1, column=0, **padding, sticky="e")
+        vendor_box = ttk.Combobox(
+            frm, textvariable=self.vendor_var, values=list(MODEL_CATALOG), state="readonly"
+        )
+        vendor_box.grid(row=1, column=1, **padding)
+        vendor_box.bind("<<ComboboxSelected>>", self._on_vendor_change)
+
+        ttk.Label(frm, text="Model:").grid(row=2, column=0, **padding, sticky="e")
+        self.model_box = ttk.Combobox(frm, textvariable=self.model_var, state="readonly")
+        self.model_box.grid(row=2, column=1, **padding)
+        self.model_box["values"] = MODEL_CATALOG[self.vendor_var.get()]
+        self.model_box.current(0)
+
+        ttk.Label(frm, text="Output file:").grid(row=3, column=0, **padding, sticky="e")
+        ttk.Entry(frm, textvariable=self.output_var, width=30).grid(
+            row=3, column=1, **padding
+        )
+        ttk.Button(frm, text="Browse", command=self._select_output).grid(
+            row=3, column=2, **padding
+        )
+
+        ttk.Label(frm, text="Profile config:").grid(
+            row=4, column=0, **padding, sticky="e"
+        )
+        ttk.Entry(frm, textvariable=self.profile_var, width=30).grid(
+            row=4, column=1, **padding
+        )
+        ttk.Button(frm, text="Browse", command=self._select_profile).grid(
+            row=4, column=2, **padding
+        )
+
+        ttk.Button(frm, text="Start Simulation", command=self._start).grid(
+            row=5, column=0, columnspan=3, pady=10
+        )
+
+        ttk.Label(frm, textvariable=self.status_var).grid(
+            row=6, column=0, columnspan=3, **padding
+        )
+
+    # ------------------------------------------------------------------
+    def _on_vendor_change(self, _event: tk.Event | None = None) -> None:
+        models = MODEL_CATALOG.get(self.vendor_var.get(), [])
+        self.model_box["values"] = models
+        if models:
+            self.model_var.set(models[0])
+            self.model_box.current(0)
+
+    # ------------------------------------------------------------------
         ttk.Label(frm, text="Model:").grid(row=1, column=0, **padding, sticky="e")
         ttk.Entry(frm, textvariable=self.model_var, width=15).grid(
             row=1, column=1, **padding
@@ -78,6 +139,7 @@ class SimulatorGUI(tk.Tk):
         )
 
     # ------------------------------------------------------------------
+
     def _select_output(self) -> None:
         path = filedialog.asksaveasfilename(
             defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")]
@@ -97,6 +159,9 @@ class SimulatorGUI(tk.Tk):
             messagebox.showerror("Invalid input", "Participants must be an integer")
             return
 
+        vendor = self.vendor_var.get().strip()
+        model_name = self.model_var.get().strip()
+        model = f"{vendor}/{model_name}" if vendor else model_name
         model = self.model_var.get().strip()
         output = Path(self.output_var.get().strip()) if self.output_var.get().strip() else None
         profile = (
