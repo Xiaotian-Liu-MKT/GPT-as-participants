@@ -36,7 +36,7 @@
    cp pythonProject/profile_config.example.json pythonProject/profile_config.json
    # 编辑 profile_config.json 以调整人口统计选项及特质含义
    ```
-
+   
 ## 运行模拟
 从仓库根目录执行：
 ```bash
@@ -47,6 +47,8 @@ python pythonProject/simulate.py --participants 50 --model gpt-4o-mini
 - `-m / --model`：`litellm` 识别的模型名称，默认 `gpt-4o-mini`。
 - `-o / --output`：结果 Excel 文件的保存路径，默认使用时间戳命名并写在当前目录。
 - `--profile-config`：JSON 文件，集中配置人口统计选项及特质含义（默认读取 `pythonProject/profile_config.json`）。
+=======
+- `--profile-config`：可选的 JSON 文件，定义人口统计信息候选值以及需要随机的特质名称（特质默认按 1–7 计分）。
 
 ## 运行流程解析
 `simulate.py` 的核心逻辑位于 `simulate_participants` 函数，其执行步骤如下：
@@ -68,6 +70,8 @@ python pythonProject/simulate.py -n 2 -m gpt-4o-mini -o demo.xlsx
 ## 自定义与扩展
 - **新增实验条件**：可在 `pythonProject` 目录中创建更多文本或图片条件文件，并在脚本中加载。
 - **自定义人口统计与特质**：编辑 `profile_config.json` 控制年龄范围、性别列表以及各特质的 1–7 级解释。
+=======
+- **自定义人口统计与特质**：通过 `--profile-config` 提供 JSON 配置或编辑 `generate_participant_details` 函数，控制年龄范围、性别列表以及要随机的特质。
 - **更换模型或参数**：通过命令行参数选择模型，或修改 `simulate_participants` 内的 `temperature`、`top_p` 范围以调整生成风格。
 
 ## 许可协议
@@ -124,6 +128,9 @@ Command‑line options:
   timestamped name).
 - `--profile-config` – JSON file listing demographic choices and trait scale
   descriptions (defaults to `pythonProject/profile_config.json`).
+=======
+- `--profile-config` – optional JSON file describing demographic choices and
+  trait names to sample (traits use a 1–7 scale).
 
 The script saves an Excel spreadsheet containing the condition, model
 output, and generated participant metadata including all sampled traits.

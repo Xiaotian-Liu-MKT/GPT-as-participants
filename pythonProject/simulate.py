@@ -27,7 +27,6 @@ from litellm import completion
 
 BASE_DIR = Path(__file__).resolve().parent
 
-
 def load_profile_config(path: Path | None) -> tuple[dict, dict[str, str]]:
     """Load demographic options and trait descriptions from JSON.
 
@@ -47,17 +46,35 @@ def load_profile_config(path: Path | None) -> tuple[dict, dict[str, str]]:
         data = json.load(fh)
     demographics = data.get("demographics", {})
     traits = data.get("characteristics", {})
+=======
+def load_profile_config(path: Path | None) -> tuple[dict, list[str] | None]:
+    """Load optional profile configuration from JSON."""
+    if path is None:
+        return {}, None
+    with path.open("r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    demographics = data.get("demographics", {})
+    traits = data.get("characteristics")
+    
     return demographics, traits
 
 
 def generate_participant_details(
     demographics_options: dict | None = None,
+
     traits: dict[str, str] | None = None,
 ) -> tuple[dict, dict[str, int]]:
     """Return random demographic and trait information."""
 
     demographics_options = demographics_options or {}
     age_range = tuple(demographics_options.get("age_range", (18, 65)))
+=======
+    traits: list[str] | None = None,
+) -> tuple[dict, dict]:
+    """Return random demographic and trait information."""
+
+    demographics_options = demographics_options or {}
+    age_range = demographics_options.get("age_range", (18, 65))
     age = random.randint(*age_range)
     sex = random.choice(demographics_options.get("sex", ["male", "female"]))
     culture_background = random.choice(
@@ -90,7 +107,40 @@ def generate_participant_details(
     ]
     characteristics = {trait: random.randint(1, 7) for trait in trait_names}
     return demographics, characteristics
+=======
 
+    demographics = {
+        "Age": age,
+        "Sex": sex,
+        "Culture Background": culture_background,
+    }
+
+    traits = traits or [
+        "extraversion",
+        "agreeableness",
+        "conscientiousness",
+        "neuroticism",
+        "openness",
+    ]
+    characteristics = {trait: random.randint(1, 7) for trait in traits}
+    return demographics, characteristics
+
+def load_condition(file_path: Path) -> list[dict]:
+    """Return message parts for a condition, supporting text and images."""
+
+    suffix = file_path.suffix.lower()
+    if suffix == ".txt":
+        text = file_path.read_text(encoding="utf-8").strip()
+        return [{"type": "text", "text": text}]
+    if suffix in {".png", ".jpg", ".jpeg", ".gif"}:
+        with file_path.open("rb") as fh:
+            b64 = base64.b64encode(fh.read()).decode("ascii")
+        mime = "jpeg" if suffix in {".jpg", ".jpeg"} else suffix.lstrip(".")
+        url = f"data:image/{mime};base64,{b64}"
+        return [{"type": "image_url", "image_url": {"url": url}}]
+    raise ValueError(f"Unsupported condition file type: {file_path}")
+
+=======
 
 def load_condition(file_path: Path) -> list[dict]:
     """Return message parts for a condition, supporting text and images."""
@@ -113,6 +163,9 @@ def build_messages(
     demographics_options: dict | None = None,
     traits: dict[str, str] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
+=======
+    traits: list[str] | None = None,
+) -> tuple[list[dict], dict]:
     """Create messages for the language model and participant metadata."""
 
     demographics, characteristics = generate_participant_details(
@@ -131,6 +184,10 @@ def build_messages(
             traits.get(trait, "1=very low, 7=very high") if traits else "1=very low, 7=very high"
         )
         system_prompt += f" Your {trait} is {value} ({meaning})."
+=======
+        system_prompt += (
+            f" Your {trait} is {value} (1=very low, 7=very high)."
+        )
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -172,6 +229,8 @@ def simulate_participants(
         created in the current directory.
     profile_config:
         Optional JSON file describing demographic choices and trait descriptions.
+=======
+        Optional JSON file describing demographic choices and trait names.
     Returns
     -------
     Path
@@ -184,8 +243,9 @@ def simulate_participants(
         raise RuntimeError(
             "LITELLM_API_KEY not set. Create a .env file or export the variable before running."
         )
-
     demo_options, trait_defs = load_profile_config(profile_config)
+=======
+    demo_options, trait_names = load_profile_config(profile_config)
 
     condition_a = load_condition(BASE_DIR / "conditionA.txt")
     condition_b = load_condition(BASE_DIR / "conditionB.txt")
@@ -199,6 +259,8 @@ def simulate_participants(
             )
             messages, metadata = build_messages(
                 condition_content, demo_options, trait_defs
+=======
+                condition_content, demo_options, trait_names
             )
 
             response = completion(
@@ -255,6 +317,8 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=BASE_DIR / "profile_config.json",
         help="JSON file with demographic options and trait descriptions",
+=======
+        help="JSON file with demographic options and trait names",
     )
     return parser.parse_args()
 
