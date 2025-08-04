@@ -14,6 +14,7 @@ single social‑sensitivity value.
 """
 
 from litellm import completion
+import os
 import pandas as pd
 import openpyxl
 import random
@@ -21,8 +22,28 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Set API key
-api_key = "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"
+
+def load_env():
+    """Load environment variables from a .env file if present."""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.exists():
+        with env_path.open() as file:
+            for line in file:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key, value)
+
+
+# Load .env variables and read the API key
+load_env()
+api_key = os.getenv("LITELLM_API_KEY")
+if not api_key:
+    raise RuntimeError("LITELLM_API_KEY not set. Create a .env file or export the variable before running.")
+
+# To switch providers, set their API key in the environment and supply the
+# provider-prefixed model name (e.g., "anthropic/claude-3-haiku") when calling
+# ``completion`` below.
 
 # Function to generate random participant details
 def generate_participant_details():
