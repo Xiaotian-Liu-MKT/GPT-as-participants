@@ -31,6 +31,12 @@
    `pythonProject/conditionA.txt` 与 `pythonProject/conditionB.txt` 可以是文本或图片
    （如 `.png`、`.jpg`），其内容将作为对被试的提示材料。
 
+4. **设置人口统计与特质**
+   ```bash
+   cp pythonProject/profile_config.example.json pythonProject/profile_config.json
+   # 编辑 profile_config.json 以调整人口统计选项及特质含义
+   ```
+   
 ## 运行模拟
 从仓库根目录执行：
 ```bash
@@ -40,6 +46,8 @@ python pythonProject/simulate.py --participants 50 --model gpt-4o-mini
 - `-n / --participants`：生成的被试数量，默认 200。
 - `-m / --model`：`litellm` 识别的模型名称，默认 `gpt-4o-mini`。
 - `-o / --output`：结果 Excel 文件的保存路径，默认使用时间戳命名并写在当前目录。
+- `--profile-config`：JSON 文件，集中配置人口统计选项及特质含义（默认读取 `pythonProject/profile_config.json`）。
+=======
 - `--profile-config`：可选的 JSON 文件，定义人口统计信息候选值以及需要随机的特质名称（特质默认按 1–7 计分）。
 
 ## 运行流程解析
@@ -61,6 +69,8 @@ python pythonProject/simulate.py -n 2 -m gpt-4o-mini -o demo.xlsx
 
 ## 自定义与扩展
 - **新增实验条件**：可在 `pythonProject` 目录中创建更多文本或图片条件文件，并在脚本中加载。
+- **自定义人口统计与特质**：编辑 `profile_config.json` 控制年龄范围、性别列表以及各特质的 1–7 级解释。
+=======
 - **自定义人口统计与特质**：通过 `--profile-config` 提供 JSON 配置或编辑 `generate_participant_details` 函数，控制年龄范围、性别列表以及要随机的特质。
 - **更换模型或参数**：通过命令行参数选择模型，或修改 `simulate_participants` 内的 `temperature`、`top_p` 范围以调整生成风格。
 
@@ -95,6 +105,13 @@ file automatically.
    Each file can be plain text or an image such as `.png` or `.jpg`.
    Adjust them to match your experiment.
 
+4. **Configure demographics and traits**
+
+   ```bash
+   cp pythonProject/profile_config.example.json pythonProject/profile_config.json
+   # Edit profile_config.json to adjust demographic options and trait scale meanings
+   ```
+
 ## Usage
 
 Run the simulator from the repository root:
@@ -109,6 +126,9 @@ Command‑line options:
 - `--model` / `-m` – model name understood by `litellm`.
 - `--output` / `-o` – optional path to save the Excel file (default uses a
   timestamped name).
+- `--profile-config` – JSON file listing demographic choices and trait scale
+  descriptions (defaults to `pythonProject/profile_config.json`).
+=======
 - `--profile-config` – optional JSON file describing demographic choices and
   trait names to sample (traits use a 1–7 scale).
 
