@@ -20,6 +20,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import json
+from tkinter import ttk
 
 # ---------------------------------------------------------------------------
 # Design tokens (subset)
@@ -153,6 +154,8 @@ class SimulatorApp(tk.Tk):
 
         ttk.Button(frame, text="New Run / 新建运行", command=self._open_new_run).pack(
             pady=10, anchor="e"
+        ttk.Button(frame, text="New Run / 新建运行", command=self._open_new_run).pack(
+            pady=20, anchor="w"
         )
         return frame
 
@@ -225,6 +228,13 @@ class SimulatorApp(tk.Tk):
         ttk.Button(templates, text="Save Template / 保存模板").pack(side="left", padx=2)
         ttk.Button(templates, text="Load Template / 加载模板").pack(side="left", padx=2)
         return frame
+        return Placeholder(master, "Runs / 运行队列")
+
+    def _build_results(self, master: tk.Misc) -> ttk.Frame:
+        return Placeholder(master, "Results / 结果浏览器")
+
+    def _build_config(self, master: tk.Misc) -> ttk.Frame:
+        return Placeholder(master, "Config / 配置与环境")
 
     # ------------------------------------------------------------------
     def _open_new_run(self) -> None:
@@ -358,6 +368,18 @@ class SimulatorApp(tk.Tk):
             command=start_and_close,
             style="Accent.TButton",
         ).pack(pady=5)
+        ttk.Entry(info, width=30).grid(row=0, column=1, padx=4, pady=4)
+        ttk.Label(info, text="Project / 项目").grid(row=1, column=0, sticky="e", padx=4, pady=4)
+        ttk.Entry(info, width=30).grid(row=1, column=1, padx=4, pady=4)
+        ttk.Label(info, text="Random Seed / 随机种子").grid(row=2, column=0, sticky="e", padx=4, pady=4)
+        ttk.Spinbox(info, from_=0, to=999999).grid(row=2, column=1, padx=4, pady=4)
+
+        # Review ----------------------------------------------------------------
+        review = ttk.Frame(frm, padding=10)
+        review.pack(fill="x", pady=10)
+        ttk.Button(
+            review, text="Start Simulation / 开始模拟", command=dlg.destroy, style="Accent.TButton"
+        ).pack()
 
     # ------------------------------------------------------------------
     def run(self) -> None:
