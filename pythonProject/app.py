@@ -20,6 +20,9 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import json
+from pathlib import Path
+
+from simulate import load_profile_config, simulate_participants
 
 # ---------------------------------------------------------------------------
 # Design tokens (subset)
@@ -153,8 +156,6 @@ class SimulatorApp(tk.Tk):
 
         ttk.Button(frame, text="New Run / 新建运行", command=self._open_new_run).pack(
             pady=10, anchor="e"
-        ttk.Button(frame, text="New Run / 新建运行", command=self._open_new_run).pack(
-            pady=20, anchor="w"
         )
         return frame
 
@@ -282,15 +283,39 @@ class SimulatorApp(tk.Tk):
         mode = tk.StringVar(value="form")
         switch = ttk.Frame(profile)
         switch.pack(anchor="w")
-        ttk.Radiobutton(switch, text="Form / 表单", variable=mode, value="form", command=lambda: self._toggle_profile(profile, mode)).pack(side="left")
-        ttk.Radiobutton(switch, text="JSON", variable=mode, value="json", command=lambda: self._toggle_profile(profile, mode)).pack(side="left")
+        ttk.Radiobutton(
+            switch,
+            text="Form / 表单",
+            variable=mode,
+            value="form",
+            command=lambda: self._toggle_profile(profile, mode),
+        ).pack(side="left")
+        ttk.Radiobutton(
+            switch,
+            text="JSON",
+            variable=mode,
+            value="json",
+            command=lambda: self._toggle_profile(profile, mode),
+        ).pack(side="left")
 
         form_frame = ttk.Frame(profile)
         form_frame.pack(fill="x")
-        ttk.Label(form_frame, text="Age / 年龄").grid(row=0, column=0, sticky="e", padx=4, pady=2)
-        ttk.Entry(form_frame).grid(row=0, column=1, padx=4, pady=2)
-        ttk.Label(form_frame, text="Openness / 开放性").grid(row=1, column=0, sticky="e", padx=4, pady=2)
-        ttk.Entry(form_frame).grid(row=1, column=1, padx=4, pady=2)
+
+        # Load trait definitions and build form inputs dynamically
+        config_path = Path(__file__).with_name("profile_config.json")
+        _, trait_defs = load_profile_config(config_path)
+        if not trait_defs:  # fallback to example config
+            _, trait_defs = load_profile_config(Path(__file__).with_name("profile_config.example.json"))
+
+        trait_entries: dict[str, ttk.Entry] = {}
+        for row, trait in enumerate(trait_defs):
+            ttk.Label(form_frame, text=f"{trait} (range)").grid(
+                row=row, column=0, sticky="e", padx=4, pady=2
+            )
+            ent = ttk.Entry(form_frame)
+            ent.insert(0, "1-7")
+            ent.grid(row=row, column=1, padx=4, pady=2)
+            trait_entries[trait] = ent
 
         json_frame = ttk.Frame(profile)
         json_text = tk.Text(json_frame, height=5)
@@ -357,8 +382,28 @@ class SimulatorApp(tk.Tk):
                 "seed": seed.get(),
                 "participants": participants.get(),
             }
+
+            trait_ranges: dict[str, tuple[int, int]] = {}
+            for name, entry in trait_entries.items():
+                text = entry.get().strip()
+                try:
+                    lo, hi = [int(x) for x in text.split("-")]
+                except Exception:
+                    lo, hi = 1, 7
+                trait_ranges[name] = (lo, hi)
+
             snapshot.delete("1.0", tk.END)
             snapshot.insert("1.0", json.dumps(data, indent=2, ensure_ascii=False))
+
+            try:
+                simulate_participants(
+                    participants.get(),
+                    "gpt-4o-mini",
+                    traits=trait_ranges,
+                )
+            except Exception as exc:  # pragma: no cover - UI feedback
+                messagebox.showerror("Simulation failed", str(exc))
+
             dlg.destroy()
 
         ttk.Button(
@@ -367,18 +412,6 @@ class SimulatorApp(tk.Tk):
             command=start_and_close,
             style="Accent.TButton",
         ).pack(pady=5)
-        ttk.Entry(info, width=30).grid(row=0, column=1, padx=4, pady=4)
-        ttk.Label(info, text="Project / 项目").grid(row=1, column=0, sticky="e", padx=4, pady=4)
-        ttk.Entry(info, width=30).grid(row=1, column=1, padx=4, pady=4)
-        ttk.Label(info, text="Random Seed / 随机种子").grid(row=2, column=0, sticky="e", padx=4, pady=4)
-        ttk.Spinbox(info, from_=0, to=999999).grid(row=2, column=1, padx=4, pady=4)
-
-        # Review ----------------------------------------------------------------
-        review = ttk.Frame(frm, padding=10)
-        review.pack(fill="x", pady=10)
-        ttk.Button(
-            review, text="Start Simulation / 开始模拟", command=dlg.destroy, style="Accent.TButton"
-        ).pack()
 
     # ------------------------------------------------------------------
     def run(self) -> None:

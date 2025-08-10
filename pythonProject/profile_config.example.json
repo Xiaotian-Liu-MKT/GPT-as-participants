@@ -17,6 +17,7 @@
     "agreeableness": "1=very disagreeable, 7=very agreeable",
     "conscientiousness": "1=very disorganized, 7=very organized",
     "neuroticism": "1=very calm, 7=very anxious",
-    "openness": "1=very traditional, 7=very open-minded"
+    "openness": "1=very traditional, 7=very open-minded",
+    "VariableA": "1=low, 7=high"
   }
 }
