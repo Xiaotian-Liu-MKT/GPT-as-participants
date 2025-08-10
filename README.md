@@ -24,10 +24,11 @@
    # 在 .env 中填写所需的密钥：
    #   OPENAI_API_KEY    -> OpenAI
    #   GEMINI_API_KEY    -> Google Gemini
-   #   GITHUB_TOKEN      -> GitHub Models
-   #   LITELLM_API_KEY   -> 通用密钥，可作为后备
+   #   GITHUB_TOKEN      -> GitHub Models（使用 GitHub 原生接口，LiteLLM 暂不支持）
+   #   LITELLM_API_KEY   -> 通用密钥，可作为后备（不适用于 GitHub Models）
    ```
-   脚本会自动从 `pythonProject/.env` 读取相关密钥；你也可以在运行前通过环境变量提供，例如：
+   脚本会自动从 `pythonProject/.env` 读取相关密钥。由于 LiteLLM 暂不支持 GitHub Models，若设置了 `GITHUB_TOKEN`，脚本将直接调用 GitHub 原生接口。
+   你也可以在运行前通过环境变量提供，例如：
    ```bash
    export OPENAI_API_KEY=sk-xxxx
    ```
@@ -66,7 +67,7 @@ python pythonProject/simulate.py --participants 50 --model gpt-4o-mini
 
 ## 运行流程解析
 `simulate.py` 的核心逻辑位于 `simulate_participants` 函数，其执行步骤如下：
-1. 读取 `.env` 获取所需的 API Key（如 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `GITHUB_TOKEN`），并加载实验条件文本或图片。
+1. 读取 `.env` 获取所需的 API Key（如 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `GITHUB_TOKEN`），并加载实验条件文本或图片。若使用 GitHub Models，将通过 GitHub 原生接口调用，因为 LiteLLM 暂不支持。
 2. 针对每个被试：
    - 随机选择 A 或 B 条件，并按配置生成年龄、性别、文化背景等人口统计信息，以及若干 1–7 计分的个体特质（如 Big Five）。
    - 调用 `build_messages` 构造发送给模型的多轮对话消息，其中系统角色描述被试的身份信息和特质含义，后续用户消息给出实验提示。
@@ -117,10 +118,11 @@ This repository provides a lightweight command-line tool for generating syntheti
    # Fill in the keys you need:
    #   OPENAI_API_KEY  -> OpenAI
    #   GEMINI_API_KEY  -> Google Gemini
-   #   GITHUB_TOKEN    -> GitHub Models
-   #   LITELLM_API_KEY -> generic fallback
+   #   GITHUB_TOKEN    -> GitHub Models (uses GitHub's native API; LiteLLM doesn't support these)
+   #   LITELLM_API_KEY -> generic fallback for LiteLLM-supported providers
    ```
-   The script reads `pythonProject/.env` automatically, or you can export the variables before running, for example:
+   The script reads `pythonProject/.env` automatically. LiteLLM does not yet support GitHub Models, so when `GITHUB_TOKEN` is set the simulator calls GitHub's native models API.
+   You can also export the variables before running, for example:
    ```bash
    export OPENAI_API_KEY=sk-xxxx
    ```
@@ -158,7 +160,7 @@ Command-line options:
 
 ## How it works
 The `simulate_participants` function in `simulate.py` performs the following steps:
-1. Load the required API key from `.env` (e.g. `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `GITHUB_TOKEN`) and read the condition files.
+1. Load the required API key from `.env` (e.g. `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `GITHUB_TOKEN`) and read the condition files. When `GITHUB_TOKEN` is used, the simulator calls GitHub's native models API because LiteLLM does not support these models.
 2. For each participant:
    - Randomly pick condition A or B and generate demographic attributes and traits scored 1–7.
    - Build a multi-turn message sequence via `build_messages`, with system messages describing identity and trait scales and user messages containing the experimental prompt.
