@@ -359,7 +359,10 @@ class SimulatorApp(tk.Tk):
         def fetch_models_for_provider(name: str) -> list[str]:
             try:
                 if name == "GitHub":
-                    headers = {"X-GitHub-Api-Version": "2022-11-28"}
+                    headers = {
+                        "X-GitHub-Api-Version": "2022-11-28",
+                        "Accept": "application/vnd.github+json",
+                    }
                     token = os.getenv("GITHUB_TOKEN")
                     if token:
                         headers["Authorization"] = f"Bearer {token}"
