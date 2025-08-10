@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import os
 import json
+import difflib
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from typing import Callable
 
 import requests
 
@@ -270,12 +272,18 @@ class SimulatorApp(tk.Tk):
         a_frame.pack(side="left", fill="both", expand=True, padx=5)
         b_frame = ttk.Frame(cond)
         b_frame.pack(side="left", fill="both", expand=True, padx=5)
+        cond_texts: dict[str, tk.Text] = {}
         for label, frame in (("A", a_frame), ("B", b_frame)):
             ttk.Label(frame, text=f"Condition {label}").pack(anchor="w")
-            btn = ttk.Button(frame, text="Load / 载入", command=lambda f=frame: self._load_file_into_text(f))
+            btn = ttk.Button(
+                frame,
+                text="Load / 载入",
+                command=lambda f=frame: self._load_file_into_text(f, update_diff),
+            )
             btn.pack(anchor="e")
             txt = tk.Text(frame, width=40, height=6)
             txt.pack(fill="both", expand=True)
+            cond_texts[label] = txt
 
             # Preload default condition text from file if available
             try:
@@ -284,9 +292,25 @@ class SimulatorApp(tk.Tk):
             except OSError:
                 # Missing or unreadable file – leave text widget empty
                 pass
+            txt.edit_modified(False)
 
         ttk.Label(cond, text="Diff (preview) / 差异预览").pack(anchor="w", pady=5)
-        tk.Text(cond, height=4).pack(fill="x")
+        diff_preview = tk.Text(cond, height=4)
+        diff_preview.pack(fill="x")
+
+        def update_diff(event: tk.Event | None = None) -> None:
+            if event and hasattr(event.widget, "edit_modified"):
+                event.widget.edit_modified(False)
+            a_lines = cond_texts["A"].get("1.0", "end-1c").splitlines(keepends=True)
+            b_lines = cond_texts["B"].get("1.0", "end-1c").splitlines(keepends=True)
+            diff = difflib.unified_diff(a_lines, b_lines, fromfile="A", tofile="B")
+            diff_preview.delete("1.0", tk.END)
+            diff_preview.insert("1.0", "".join(diff))
+
+        for txt in cond_texts.values():
+            txt.bind("<<Modified>>", update_diff)
+
+        update_diff()
 
         # Participant Profile ---------------------------------------------------
         profile = ttk.LabelFrame(frm, text="Participant Profile / 参与者画像", padding=10)
@@ -488,7 +512,9 @@ class SimulatorApp(tk.Tk):
         self.mainloop()
 
     # Utility callbacks -------------------------------------------------
-    def _load_file_into_text(self, frame: ttk.Frame) -> None:
+    def _load_file_into_text(
+        self, frame: ttk.Frame, callback: Callable[[], None] | None = None
+    ) -> None:
         """Load a text file into the first Text widget of ``frame``."""
 
         path = filedialog.askopenfilename(filetypes=[("Text", "*.txt"), ("All", "*")])
@@ -499,6 +525,9 @@ class SimulatorApp(tk.Tk):
             with open(path, "r", encoding="utf-8") as fh:
                 widget.delete("1.0", tk.END)
                 widget.insert("1.0", fh.read())
+            widget.edit_modified(False)
+            if callback:
+                callback()
 
     def _toggle_profile(self, frame: ttk.LabelFrame, mode: tk.StringVar) -> None:
         """Switch between profile form and JSON editor."""
