@@ -233,13 +233,6 @@ class SimulatorApp(tk.Tk):
         ttk.Button(templates, text="Save Template / 保存模板").pack(side="left", padx=2)
         ttk.Button(templates, text="Load Template / 加载模板").pack(side="left", padx=2)
         return frame
-        return Placeholder(master, "Runs / 运行队列")
-
-    def _build_results(self, master: tk.Misc) -> ttk.Frame:
-        return Placeholder(master, "Results / 结果浏览器")
-
-    def _build_config(self, master: tk.Misc) -> ttk.Frame:
-        return Placeholder(master, "Config / 配置与环境")
 
     # ------------------------------------------------------------------
     def _open_new_run(self) -> None:
