@@ -107,38 +107,6 @@ class SimulatorGUI(tk.Tk):
             self.model_box.current(0)
 
     # ------------------------------------------------------------------
-        ttk.Label(frm, text="Model:").grid(row=1, column=0, **padding, sticky="e")
-        ttk.Entry(frm, textvariable=self.model_var, width=15).grid(
-            row=1, column=1, **padding
-        )
-
-        ttk.Label(frm, text="Output file:").grid(row=2, column=0, **padding, sticky="e")
-        ttk.Entry(frm, textvariable=self.output_var, width=30).grid(
-            row=2, column=1, **padding
-        )
-        ttk.Button(frm, text="Browse", command=self._select_output).grid(
-            row=2, column=2, **padding
-        )
-
-        ttk.Label(frm, text="Profile config:").grid(
-            row=3, column=0, **padding, sticky="e"
-        )
-        ttk.Entry(frm, textvariable=self.profile_var, width=30).grid(
-            row=3, column=1, **padding
-        )
-        ttk.Button(frm, text="Browse", command=self._select_profile).grid(
-            row=3, column=2, **padding
-        )
-
-        ttk.Button(frm, text="Start Simulation", command=self._start).grid(
-            row=4, column=0, columnspan=3, pady=10
-        )
-
-        ttk.Label(frm, textvariable=self.status_var).grid(
-            row=5, column=0, columnspan=3, **padding
-        )
-
-    # ------------------------------------------------------------------
 
     def _select_output(self) -> None:
         path = filedialog.asksaveasfilename(
