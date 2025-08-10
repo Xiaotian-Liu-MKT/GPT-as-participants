@@ -270,27 +270,27 @@ class SetupWizard:
     def _test_github_models(self) -> bool:
         """Test GitHub Models connection."""
         try:
-            # Test with a simple API call
             token = os.getenv("GITHUB_TOKEN")
             headers = {
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Accept": "application/vnd.github+json",
             }
-
-            # Test GitHub API access
             response = requests.get(
-                "https://api.github.com/user",
-                headers={"Authorization": f"token {token}"}
+                "https://api.github.com/models", headers=headers, timeout=5
             )
-
             if response.status_code == 200:
-                username = response.json().get("login", "Unknown")
-                print(f"      Connected as: {username}")
+                try:
+                    data = response.json()
+                    count = len(data.get("data", [])) if isinstance(data, dict) else len(data)
+                    print(f"      Retrieved {count} models")
+                except Exception:
+                    print("      Received non-JSON response")
+                    return False
                 return True
             else:
                 print(f"      HTTP {response.status_code}: {response.text}")
                 return False
-
         except Exception as e:
             print(f"      Error: {e}")
             return False
