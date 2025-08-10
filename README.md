@@ -46,6 +46,12 @@ python pythonProject/gui.py
 =======
 在窗口中填写参与者数量、模型名称以及可选的输出路径、配置文件，然后点击“Start Simulation”即可。
 
+实验版的现代化界面（含仪表盘与抽屉式“新建运行”面板）可运行：
+```bash
+python pythonProject/app.py
+```
+该界面展示了设计文档中的信息架构与双语标签，后续可在此基础上继续完善。
+
 ## 运行模拟
 从仓库根目录执行：
 ```bash
