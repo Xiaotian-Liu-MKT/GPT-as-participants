@@ -296,25 +296,52 @@ class SimulatorApp(tk.Tk):
             "diff-hunk", foreground="gray", font=(FONT_FAMILY, 10, "italic")
         )
 
+        add_bg = diff_preview.tag_cget("diff-add", "background")
+        add_fg = diff_preview.tag_cget("diff-add", "foreground")
+        del_bg = diff_preview.tag_cget("diff-del", "background")
+        del_fg = diff_preview.tag_cget("diff-del", "foreground")
+        for txt in cond_texts.values():
+            txt.tag_config("diff-add", background=add_bg, foreground=add_fg)
+            txt.tag_config("diff-del", background=del_bg, foreground=del_fg)
+
         def update_diff(event: tk.Event | None = None) -> None:
             if event and hasattr(event.widget, "edit_modified"):
                 event.widget.edit_modified(False)
             for tag in diff_preview.tag_names():
                 diff_preview.tag_remove(tag, "1.0", tk.END)
             diff_preview.delete("1.0", tk.END)
+            for txt in cond_texts.values():
+                txt.tag_remove("diff-add", "1.0", tk.END)
+                txt.tag_remove("diff-del", "1.0", tk.END)
+
             a_lines = cond_texts["A"].get("1.0", "end-1c").splitlines(keepends=True)
             b_lines = cond_texts["B"].get("1.0", "end-1c").splitlines(keepends=True)
-            diff_lines = list(
-                difflib.unified_diff(a_lines, b_lines, fromfile="A", tofile="B")
-            )
-            diff_preview.insert("1.0", "".join(diff_lines))
-            for idx, line in enumerate(diff_lines, start=1):
-                if line.startswith("@@"):
-                    diff_preview.tag_add("diff-hunk", f"{idx}.0", f"{idx}.0 lineend")
-                elif line.startswith("+"):
-                    diff_preview.tag_add("diff-add", f"{idx}.0", f"{idx}.0 lineend")
-                elif line.startswith("-"):
-                    diff_preview.tag_add("diff-del", f"{idx}.0", f"{idx}.0 lineend")
+            diff_preview.insert(tk.END, "--- A\n+++ B\n")
+            sm = difflib.SequenceMatcher(None, a_lines, b_lines)
+            for tag, i1, i2, j1, j2 in sm.get_opcodes():
+                if tag in ("replace", "delete"):
+                    cond_texts["A"].tag_add(
+                        "diff-del", f"{i1 + 1}.0", f"{i2 + 1}.0"
+                    )
+                if tag in ("replace", "insert"):
+                    cond_texts["B"].tag_add(
+                        "diff-add", f"{j1 + 1}.0", f"{j2 + 1}.0"
+                    )
+
+                if tag == "equal":
+                    for line in a_lines[i1:i2]:
+                        diff_preview.insert(tk.END, " " + line)
+                elif tag == "delete":
+                    for line in a_lines[i1:i2]:
+                        diff_preview.insert(tk.END, "-" + line, "diff-del")
+                elif tag == "insert":
+                    for line in b_lines[j1:j2]:
+                        diff_preview.insert(tk.END, "+" + line, "diff-add")
+                elif tag == "replace":
+                    for line in a_lines[i1:i2]:
+                        diff_preview.insert(tk.END, "-" + line, "diff-del")
+                    for line in b_lines[j1:j2]:
+                        diff_preview.insert(tk.END, "+" + line, "diff-add")
 
         for txt in cond_texts.values():
             txt.bind("<<Modified>>", update_diff)
