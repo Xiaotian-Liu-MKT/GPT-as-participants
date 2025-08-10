@@ -274,6 +274,14 @@ class SimulatorApp(tk.Tk):
             txt = tk.Text(frame, width=40, height=6)
             txt.pack(fill="both", expand=True)
 
+            # Preload default condition text from file if available
+            try:
+                file_path = Path(__file__).with_name(f"condition{label}.txt")
+                txt.insert("1.0", file_path.read_text(encoding="utf-8"))
+            except OSError:
+                # Missing or unreadable file – leave text widget empty
+                pass
+
         ttk.Label(cond, text="Diff (preview) / 差异预览").pack(anchor="w", pady=5)
         tk.Text(cond, height=4).pack(fill="x")
 
