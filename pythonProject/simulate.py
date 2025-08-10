@@ -52,9 +52,14 @@ def load_profile_config(path: Path | None) -> tuple[dict, dict[str, str]]:
 
 def generate_participant_details(
     demographics_options: dict | None = None,
-    traits: dict[str, str] | None = None,
+    traits: dict[str, tuple[int, int]] | None = None,
 ) -> tuple[dict, dict[str, int]]:
-    """Return random demographic and trait information."""
+    """Return random demographic and trait information.
+
+    ``traits`` may map each trait name to a ``(min, max)`` tuple.  If no
+    mapping is provided, the Big Five traits are used with a default range of
+    1–7.
+    """
 
     demographics_options = demographics_options or {}
     age_range = tuple(demographics_options.get("age_range", (18, 65)))
@@ -81,14 +86,19 @@ def generate_participant_details(
         "Culture Background": culture_background,
     }
 
-    trait_names = traits.keys() if traits else [
-        "extraversion",
-        "agreeableness",
-        "conscientiousness",
-        "neuroticism",
-        "openness",
-    ]
-    characteristics = {trait: random.randint(1, 7) for trait in trait_names}
+    if traits:
+        characteristics = {
+            trait: random.randint(rng[0], rng[1]) for trait, rng in traits.items()
+        }
+    else:
+        trait_names = [
+            "extraversion",
+            "agreeableness",
+            "conscientiousness",
+            "neuroticism",
+            "openness",
+        ]
+        characteristics = {trait: random.randint(1, 7) for trait in trait_names}
     return demographics, characteristics
 
 
@@ -111,7 +121,7 @@ def load_condition(file_path: Path) -> list[dict]:
 def build_messages(
     condition_content: list[dict],
     demographics_options: dict | None = None,
-    traits: dict[str, str] | None = None,
+    traits: dict[str, tuple[int, int]] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     """Create messages for the language model and participant metadata."""
 
@@ -158,6 +168,7 @@ def simulate_participants(
     model: str,
     output: Path | None = None,
     profile_config: Path | None = None,
+    traits: dict[str, tuple[int, int]] | None = None,
 ) -> Path:
     """Run the simulation and save results to an Excel file.
 
@@ -172,6 +183,9 @@ def simulate_participants(
         created in the current directory.
     profile_config:
         Optional JSON file describing demographic choices and trait descriptions.
+    traits:
+        Optional mapping of trait names to ``(min, max)`` ranges overriding the
+        configuration file.
 
     Returns
     -------
@@ -186,6 +200,7 @@ def simulate_participants(
             "LITELLM_API_KEY not set. Create a .env file or export the variable before running."
         )
     demo_options, trait_defs = load_profile_config(profile_config)
+    trait_ranges = traits or {name: (1, 7) for name in trait_defs}
 
     condition_a = load_condition(BASE_DIR / "conditionA.txt")
     condition_b = load_condition(BASE_DIR / "conditionB.txt")
@@ -198,7 +213,7 @@ def simulate_participants(
                 condition_a if condition_key == "condition A" else condition_b
             )
             messages, metadata = build_messages(
-                condition_content, demo_options, trait_defs
+                condition_content, demo_options, trait_ranges
             )
 
             response = completion(
