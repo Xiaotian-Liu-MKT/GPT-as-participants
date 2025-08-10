@@ -224,7 +224,7 @@ class SetupWizard:
         print("\nTesting configuration...")
 
         # Load environment variables
-        load_dotenv(self.env_file)
+        load_dotenv(self.env_file, override=True)
 
         # Test available APIs
         tested_any = False
