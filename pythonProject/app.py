@@ -290,15 +290,31 @@ class SimulatorApp(tk.Tk):
         ttk.Label(cond, text="Diff (preview) / 差异预览").pack(anchor="w", pady=5)
         diff_preview = tk.Text(cond, height=4)
         diff_preview.pack(fill="x")
+        diff_preview.tag_config("diff-add", background="#c6f6d5", foreground="black")
+        diff_preview.tag_config("diff-del", background="#feb2b2", foreground="black")
+        diff_preview.tag_config(
+            "diff-hunk", foreground="gray", font=(FONT_FAMILY, 10, "italic")
+        )
 
         def update_diff(event: tk.Event | None = None) -> None:
             if event and hasattr(event.widget, "edit_modified"):
                 event.widget.edit_modified(False)
+            for tag in diff_preview.tag_names():
+                diff_preview.tag_remove(tag, "1.0", tk.END)
+            diff_preview.delete("1.0", tk.END)
             a_lines = cond_texts["A"].get("1.0", "end-1c").splitlines(keepends=True)
             b_lines = cond_texts["B"].get("1.0", "end-1c").splitlines(keepends=True)
-            diff = difflib.unified_diff(a_lines, b_lines, fromfile="A", tofile="B")
-            diff_preview.delete("1.0", tk.END)
-            diff_preview.insert("1.0", "".join(diff))
+            diff_lines = list(
+                difflib.unified_diff(a_lines, b_lines, fromfile="A", tofile="B")
+            )
+            diff_preview.insert("1.0", "".join(diff_lines))
+            for idx, line in enumerate(diff_lines, start=1):
+                if line.startswith("@@"):
+                    diff_preview.tag_add("diff-hunk", f"{idx}.0", f"{idx}.0 lineend")
+                elif line.startswith("+"):
+                    diff_preview.tag_add("diff-add", f"{idx}.0", f"{idx}.0 lineend")
+                elif line.startswith("-"):
+                    diff_preview.tag_add("diff-del", f"{idx}.0", f"{idx}.0 lineend")
 
         for txt in cond_texts.values():
             txt.bind("<<Modified>>", update_diff)
