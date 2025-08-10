@@ -17,10 +17,13 @@ package; the appearance will simply fall back to the default Tk theme.
 
 from __future__ import annotations
 
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+import os
 import json
+import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
+
+import requests
 
 from simulate import load_profile_config, simulate_participants
 
@@ -342,7 +345,61 @@ class SimulatorApp(tk.Tk):
         provider = ttk.LabelFrame(frm, text="Model Provider / 模型供应商", padding=10)
         provider.pack(fill="x", pady=5)
         prov_var = tk.StringVar()
-        ttk.Combobox(provider, values=["OpenAI", "Gemini", "GitHub"], textvariable=prov_var).grid(row=0, column=0, padx=4, pady=4)
+        model_var = tk.StringVar()
+        prov_combo = ttk.Combobox(
+            provider,
+            values=["OpenAI", "Gemini", "GitHub"],
+            textvariable=prov_var,
+            state="readonly",
+        )
+        prov_combo.grid(row=0, column=0, padx=4, pady=4)
+        model_combo = ttk.Combobox(provider, textvariable=model_var, state="readonly")
+        model_combo.grid(row=0, column=1, padx=4, pady=4)
+
+        def fetch_models_for_provider(name: str) -> list[str]:
+            try:
+                if name == "GitHub":
+                    headers = {"X-GitHub-Api-Version": "2022-11-28"}
+                    token = os.getenv("GITHUB_TOKEN")
+                    if token:
+                        headers["Authorization"] = f"Bearer {token}"
+                    resp = requests.get(
+                        "https://api.github.com/models", headers=headers, timeout=5
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    models: list[str] = []
+                    if isinstance(data, dict):
+                        items = data.get("data") or data.get("models") or data.get("items")
+                        if isinstance(items, list):
+                            for item in items:
+                                if isinstance(item, dict):
+                                    models.append(item.get("id") or item.get("name"))
+                    elif isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict):
+                                models.append(item.get("id") or item.get("name"))
+                    return [m for m in models if m]
+                if name == "OpenAI":
+                    return ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
+                if name == "Gemini":
+                    return ["gemini-1.5-flash", "gemini-1.5-pro"]
+            except Exception:
+                pass
+            return []
+
+        def on_provider_change(event: tk.Event | None = None) -> None:
+            models = fetch_models_for_provider(prov_var.get())
+            model_combo["values"] = models
+            if models:
+                model_var.set(models[0])
+            else:
+                model_var.set("")
+
+        prov_combo.bind("<<ComboboxSelected>>", on_provider_change)
+        prov_combo.current(0)
+        on_provider_change()
+
         params = ttk.Frame(provider)
         params.grid(row=1, column=0, columnspan=2, pady=5)
         ttk.Label(params, text="temperature").grid(row=0, column=0)
@@ -388,6 +445,8 @@ class SimulatorApp(tk.Tk):
                 "run_name": run_name.get(),
                 "project": project.get(),
                 "seed": seed.get(),
+                "provider": prov_var.get(),
+                "model": model_var.get(),
                 "participants": participants.get(),
             }
 
@@ -406,7 +465,7 @@ class SimulatorApp(tk.Tk):
             try:
                 simulate_participants(
                     participants.get(),
-                    "gpt-4o-mini",
+                    model_var.get() or "gpt-4o-mini",
                     traits=trait_ranges,
                 )
             except Exception as exc:  # pragma: no cover - UI feedback
